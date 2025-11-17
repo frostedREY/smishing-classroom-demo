@@ -19,11 +19,6 @@ A classroom-ready simulator that recreates realistic SMiShing scenarios without 
 - Classroom demos for ICT or Senior High School  
 - Workshops and seminars on digital safety
 
-## File Structure  
-/project-root
-│── index.html
-│── scenarios.js
-
 ## How to Run  
 1. Download or clone the repository.  
 2. Keep all files in the same folder.  
