@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SMISHING Simulator — Attacker Preview</title>
+<style>
+  :root{--bg:#f4f6f8;--card:#fff;--muted:#6b7280;--accent:#0b84ff}
+  html,body{height:100%;margin:0;font-family:system-ui,Inter,Arial,sans-serif;background:var(--bg);color:#111}
+  .wrap{max-width:1100px;margin:20px auto;padding:16px;display:flex;gap:16px;align-items:flex-start}
+  .col{background:var(--card);border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,.08);padding:14px;flex:1;min-width:280px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  h1{font-size:18px;margin:0}
+  p.small{margin:6px 0 12px;font-size:13px;color:var(--muted)}
+  .phone{max-width:380px;margin:0 auto;border-radius:12px;border:1px solid #e6e9ee;overflow:hidden;background:#fff}
+  .phone-top{background:#0f1724;color:#fff;padding:10px;font-weight:600}
+  .sms-box{padding:16px;min-height:140px}
+  .from{font-weight:700;color:var(--accent);margin-bottom:8px}
+  .body{white-space:pre-wrap;margin-bottom:12px;color:#111}
+  .actions{display:flex;gap:8px}
+  .btn{padding:8px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer}
+  .btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+  .btn.warn{background:#ff7043;color:#fff;border-color:transparent}
+  .muted{color:var(--muted);font-size:13px}
+  .console{height:420px;display:flex;flex-direction:column}
+  .console-logs{flex:1;overflow:auto;background:#0b1220;color:#dff3ff;padding:12px;border-radius:8px;font-family:monospace;font-size:13px;white-space: pre-wrap;word-break: break-word;}
+  .console-meta{margin-top:10px;font-size:13px;color:var(--muted)}
+  .small-input{width:100%;padding:8px;border-radius:6px;border:1px solid #e6e9ee;margin-top:8px}
+  footer{display:flex;justify-content:space-between;gap:8px;margin-top:12px}
+  .controls{display:flex;gap:8px;align-items:center}
+  .pill{background:#eef2ff;color:#0b3a7a;padding:6px 8px;border-radius:999px;font-size:13px}
+  .overlay{position:fixed;inset:0;background:rgba(2,6,23,.6);display:flex;align-items:center;justify-content:center;z-index:99}
+  .consent{background:var(--card);padding:20px;border-radius:10px;max-width:520px;text-align:left}
+  .consent h2{margin:0 0 8px 0}
+  .consent p{margin:0 0 12px 0;color:var(--muted)}
+  .row{display:flex;gap:8px}
+  @media (max-width:920px){ .wrap{flex-direction:column;padding:12px} .console{height:300px} .phone{width:100%} }
+  a.linkish{color:var(--accent);text-decoration:underline}
+  .small-note{font-size:12px;color:var(--muted);margin-top:8px}
+  .btn { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="overlay" id="overlay" aria-hidden="false">
+  <div class="consent" role="dialog" aria-labelledby="consentTitle">
+    <h2 id="consentTitle">SMISHING Simulator — Consent</h2>
+    <p>This is for classroom demo. No messages are sent, no data leaves your browser. Actions are stored only in your session. Use responsibly and obtain consent from participants.</p>
+    <div class="row" style="margin-top:12px">
+      <button id="consentStart" class="btn primary">Start Demo</button>
+      <button id="consentDocs" class="btn">REMINDERS!</button>
+    </div>
+    <div id="configNotes" style="display:none;margin-top:12px;color:#111;font-size:13px">
+      <strong>Quick config:</strong>
+      <ul style="margin:6px 0 0 18px;color:var(--muted)">
+        <li>Edit the `scenariosDefault` array in the "scenarios.js" file to add/remove messages.</li>
+        <li>Each scenario: {id, sender, body, type:'otp'|'cred'|'info'|'legit'}.</li>
+        <li>Can be deployed easily to GitHub Pages: Single file. Works offline.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <section class="col" aria-labelledby="victimTitle">
+    <header><h1 id="victimTitle"> Simulated Victim POV</h1><div class="pill" id="stageLabel">Ready</div></header>
+    <p class="small">Receive one message. 
+    </p>
+    <p class="small"><b>Open link </b> / <b>Ignore</b> / <b>Report</b>. Actions update the attacker preview live.</p>
+
+    <div class="phone" role="region" aria-label="simulated phone">
+      <div class="phone-top" id="phoneTop">Inbox / +63 ••• ••• •••</div>
+      <div class="sms-box" id="smsBox">
+        <div class="muted">No scenario loaded.</div>
+      </div>
+    </div>
+<div style="margin-top:12px"></div>
+      <div class="muted">Tap a button to interact.</div>
+
+    <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+      <div class="controls">
+        <button id="openBtn" class="btn primary" disabled>Go To Link</button>
+        <button id="ignoreBtn" class="btn" disabled>Ignore</button>
+        <button id="reportBtn" class="btn warn" disabled>Report</button>
+      </div>
+      <div style="text-align:right">
+        <div class="muted">Scenarios left: <span id="leftCount">0</span></div>
+        <div class="small-note">Use trainer controls to push next. Shuffle recommended for realism.</div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="col" aria-labelledby="attackerTitle">
+    <header><h1 id="attackerTitle">Attacker — Live Preview</h1></header>
+    <p class="small">Shows what the attacker sees and what is captured when the victim interacts.</p>
+
+    <div class="console">
+      <div id="logs" class="console-logs" aria-live="polite">[console idle]</div>
+      <div class="console-meta" id="meta">
+        <div>Current scenario: <strong id="metaScenario">none</strong></div>
+        <div>Last action: <span id="metaAction">—</span></div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label class="muted">Trainer controls</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button id="nextBtn" class="btn">Push next</button>
+          <button id="seedBtn" class="btn">Seed sample set</button>
+          <button id="shuffleBtn" class="btn">Shuffle</button>
+          <button id="resetBtn" class="btn">Reset</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+<script src="scenarios.js"></script> 
+<script>
+
+/* ------------------------
+   State + DOM refs
+   ------------------------ */
+let scenarios = [];
+let current = null;
+let logLines = [];
+
+const overlay = document.getElementById('overlay');
+const app = document.getElementById('app');
+const smsBox = document.getElementById('smsBox');
+const openBtn = document.getElementById('openBtn');
+const ignoreBtn = document.getElementById('ignoreBtn');
+const reportBtn = document.getElementById('reportBtn');
+const nextBtn = document.getElementById('nextBtn');
+const seedBtn = document.getElementById('seedBtn');
+const shuffleBtn = document.getElementById('shuffleBtn');
+const resetBtn = document.getElementById('resetBtn');
+const logsEl = document.getElementById('logs');
+const metaScenario = document.getElementById('metaScenario');
+const metaAction = document.getElementById('metaAction');
+const leftCount = document.getElementById('leftCount');
+const stageLabel = document.getElementById('stageLabel');
+const consentStart = document.getElementById('consentStart');
+const consentDocs = document.getElementById('consentDocs');
+const configNotes = document.getElementById('configNotes');
+
+/* ------------------------
+   Helpers
+   ------------------------ */
+   function spoofedContact() {
+  const persistent = [
+    "1 New Message",
+    "Notice",
+    "Action Needed!",
+    "New Alert",
+    "Unread: 1",
+    "System Notice",
+    "Staff Msg",
+    "Office Memo"
+  ];
+
+  // 40% chance to show a 4-digit short ID (no country code), 60% show persistent label
+  const useId = Math.random() < 0.4;
+  if (useId) {
+    const id4 = Math.floor(1000 + Math.random() * 9000).toString();
+    // keep digits grouped but no +63; protect against wrapping
+    return `Inbox / ${id4}`;
+  }
+
+  // pick a persistent label; replace spaces with non-breaking spaces so it won't wrap
+  const label = persistent[Math.floor(Math.random() * persistent.length)];
+  return `Inbox / ${label.replace(/\s+/g, "\u00A0")}`;
+}
+function seedDefault(){ scenarios = scenariosDefault.slice(); phoneTop.textContent = spoofedContact(); renderLeftCount(); pushNextIfNone(); logClear(); logAdd('Trainer seeded default scenarios'); }
+function logClear(){ logLines=[]; renderLogs(); }
+function logAdd(msg){
+  const t = new Date().toLocaleTimeString();
+  logLines.push(`[${t}] ${msg}`);
+  if (logLines.length>500) logLines.shift();
+  renderLogs();
+}
+function renderLogs(){ logsEl.textContent = logLines.join('\n') || '[console idle]'; logsEl.scrollTop = logsEl.scrollHeight; }
+function renderLeftCount(){ leftCount.textContent = scenarios.length; }
+function setStage(s){ stageLabel.textContent = s; }
+function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } }
+
+/* ------------------------
+   Scenario lifecycle
+   ------------------------ */
+function pushNextIfNone(){
+  if(current) return;
+  if(scenarios.length===0){
+    smsBox.innerHTML = '<div class="muted">No scenarios. Use trainer controls to seed or reset.</div>';
+    disableActionButtons(true);
+    metaScenario.textContent='none';
+    setStage('Idle');
+    return;
+  }
+  current = scenarios.shift();
+  phoneTop.textContent = spoofedContact();
+  renderLeftCount();
+  renderCurrent();
+  logAdd(`Delivered SMS to victim: "${current.sender}" (${current.type})`);
+  metaScenario.textContent = `${current.sender} [${current.type}]`;
+  setStage('Message delivered');
+  disableActionButtons(false);
+  
+}
+
+function renderCurrent(){
+  if(!current) return;
+  const visibleLink = `<a href="#" class="linkish" data-type="${current.type}">[link]</a>`;
+  const htmlBody = current.body.replace('[link]', visibleLink);
+  smsBox.innerHTML = `<div class="from">${current.sender}</div><div class="body">${htmlBody}</div>`;
+}
+
+/* ------------------------
+   Actions
+   ------------------------ */
+function disableActionButtons(dis){
+  openBtn.disabled = dis;
+  ignoreBtn.disabled = dis;
+  reportBtn.disabled = dis;
+}
+openBtn.addEventListener('click', ()=> victimOpen());
+ignoreBtn.addEventListener('click', ()=> victimIgnore());
+reportBtn.addEventListener('click', ()=> victimReport());
+
+function victimOpen(){
+  if(!current) return;
+  logAdd(`Victim clicked link for scenario id = ${current.sender}`);
+  metaAction.textContent = 'link clicked';
+  setStage('Victim clicked');
+  if(current.type === 'otp'){
+    attackerServePage('OTP request', 'Please enter the OTP sent to your device (simulated).', 'otp');
+    setTimeout(()=>{
+      const otp = prompt('Simulated site: Enter OTP (Sample OTP: 123456)');
+      if(otp === null){ logAdd('Victim dismissed OTP prompt'); metaAction.textContent='otp dismissed'; }
+      else { logAdd(`Captured OTP: ${otp}`); metaAction.textContent='otp submitted'; attackerShowCapture({otp}); }
+      finishScenario('clicked');
+    }, 220);
+  } else if(current.type === 'cred'){
+    attackerServePage('Login required', 'Enter username and password to continue (simulated).', 'cred');
+    setTimeout(()=>{
+      const user = prompt('Simulated site: Username (Sample Username = mycute_username)');
+      if(user === null){ logAdd('Victim dismissed login prompt'); metaAction.textContent='login dismissed'; finishScenario('clicked'); return; }
+      const pwd = prompt('Password (Sample Password = myname123)');
+      logAdd(`Captured credentials → user: ${user} | pass: ${pwd}`);
+      metaAction.textContent='credentials submitted';
+      attackerShowCapture({user,pwd});
+      finishScenario('clicked');
+    }, 220);
+  } else if(current.type === 'info'){
+    attackerServePage('Info page', 'Show details and request confirmation (simulated).', 'info');
+    setTimeout(()=>{ alert('Simulated info page shown.'); logAdd('Victim viewed info page (no credentials requested)'); metaAction.textContent='viewed info'; finishScenario('clicked'); },160);
+  } else { // legit
+    attackerServePage('Official message', 'This is an official message — nothing malicious.', 'legit');
+    setTimeout(()=>{ alert('Legit message. No capture.'); logAdd('Victim opened legit message'); metaAction.textContent='opened legit'; finishScenario('legit'); },160);
+  }
+}
+
+function victimIgnore(){
+  if(!current) return;
+  logAdd(`Victim ignored scenario id=${current.sender}`);
+  metaAction.textContent='ignored';
+  setStage('Ignored');
+  finishScenario('ignored');
+}
+
+function victimReport(){
+  if(!current) return;
+  logAdd(`Victim reported message id = "${current.sender}" to provider/IT`);
+  metaAction.textContent='reported';
+  setStage('Reported');
+  finishScenario('reported');
+}
+
+function finishScenario(result){
+  disableActionButtons(true);
+  setTimeout(()=>{
+    logAdd(`Scenario id = "${current.sender}" ---> smishing attack (STATUS=${result})`);
+    current = null;
+    metaScenario.textContent='none';
+    metaAction.textContent='—';
+    setStage('Ready');
+  }, 700);
+}
+
+/* ------------------------
+   Attacker console / preview
+   ------------------------ */
+function attackerServePage(title, desc, t){
+  logAdd(`Attacker: serving page → ${title} (${t})`);
+  logAdd(`Attacker preview: page content -> ${desc}`);
+}
+function attackerShowCapture(obj){
+  if(obj.otp) logAdd(`Attacker captured OTP: ${obj.otp}`);
+  if(obj.user || obj.pwd) logAdd(`Attacker captured credentials: user="${obj.user}" pass="${obj.pwd}"`);
+}
+
+/* ------------------------
+   Trainer controls
+   ------------------------ */
+nextBtn.addEventListener('click', ()=> {
+  if(!current) pushNextIfNone();
+  else { logAdd('Trainer advanced to next scenario (forced)'); current = null; setStage('Forced next'); pushNextIfNone(); }
+});
+seedBtn.addEventListener('click', ()=> seedDefault());
+shuffleBtn.addEventListener('click', ()=> { shuffleArray(scenarios); renderLeftCount(); logAdd('Trainer shuffled scenarios'); });
+resetBtn.addEventListener('click', ()=> { scenarios=[]; current=null; renderLeftCount(); smsBox.innerHTML = '<div class="muted">Reset done. Seed or push next.</div>'; logAdd('Trainer reset the demo'); metaScenario.textContent='none'; metaAction.textContent='—'; setStage('Idle'); disableActionButtons(true); });
+
+consentStart.addEventListener('click', ()=>{
+  overlay.style.display = 'none';
+  app.style.display = 'flex';
+  seedDefault();
+});
+consentDocs.addEventListener('click', ()=> { configNotes.style.display = configNotes.style.display === 'none' ? 'block' : 'none'; });
+
+/* ------------------------
+   Init
+   ------------------------ */
+disableActionButtons(true);
+setStage('Waiting');
+renderLogs();
+renderLeftCount();
+</script>
+</body>
+</html>
