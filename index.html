@@ -115,9 +115,6 @@
 <script src="scenarios.js"></script> 
 <script>
 
-/* ------------------------
-   State + DOM refs
-   ------------------------ */
 let scenarios = [];
 let current = null;
 let logLines = [];
@@ -141,9 +138,6 @@ const consentStart = document.getElementById('consentStart');
 const consentDocs = document.getElementById('consentDocs');
 const configNotes = document.getElementById('configNotes');
 
-/* ------------------------
-   Helpers
-   ------------------------ */
    function spoofedContact() {
   const persistent = [
     "1 New Message",
@@ -156,15 +150,11 @@ const configNotes = document.getElementById('configNotes');
     "Office Memo"
   ];
 
-  // 40% chance to show a 4-digit short ID (no country code), 60% show persistent label
   const useId = Math.random() < 0.4;
   if (useId) {
     const id4 = Math.floor(1000 + Math.random() * 9000).toString();
-    // keep digits grouped but no +63; protect against wrapping
     return `Inbox / ${id4}`;
   }
-
-  // pick a persistent label; replace spaces with non-breaking spaces so it won't wrap
   const label = persistent[Math.floor(Math.random() * persistent.length)];
   return `Inbox / ${label.replace(/\s+/g, "\u00A0")}`;
 }
@@ -181,9 +171,6 @@ function renderLeftCount(){ leftCount.textContent = scenarios.length; }
 function setStage(s){ stageLabel.textContent = s; }
 function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } }
 
-/* ------------------------
-   Scenario lifecycle
-   ------------------------ */
 function pushNextIfNone(){
   if(current) return;
   if(scenarios.length===0){
@@ -211,9 +198,6 @@ function renderCurrent(){
   smsBox.innerHTML = `<div class="from">${current.sender}</div><div class="body">${htmlBody}</div>`;
 }
 
-/* ------------------------
-   Actions
-   ------------------------ */
 function disableActionButtons(dis){
   openBtn.disabled = dis;
   ignoreBtn.disabled = dis;
@@ -283,9 +267,6 @@ function finishScenario(result){
   }, 700);
 }
 
-/* ------------------------
-   Attacker console / preview
-   ------------------------ */
 function attackerServePage(title, desc, t){
   logAdd(`Attacker: serving page → ${title} (${t})`);
   logAdd(`Attacker preview: page content -> ${desc}`);
@@ -295,9 +276,6 @@ function attackerShowCapture(obj){
   if(obj.user || obj.pwd) logAdd(`Attacker captured credentials: user="${obj.user}" pass="${obj.pwd}"`);
 }
 
-/* ------------------------
-   Trainer controls
-   ------------------------ */
 nextBtn.addEventListener('click', ()=> {
   if(!current) pushNextIfNone();
   else { logAdd('Trainer advanced to next scenario (forced)'); current = null; setStage('Forced next'); pushNextIfNone(); }
@@ -323,3 +301,4 @@ renderLeftCount();
 </script>
 </body>
 </html>
+
