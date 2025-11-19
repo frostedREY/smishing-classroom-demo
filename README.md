@@ -28,6 +28,10 @@ A classroom-ready simulator that recreates realistic SMiShing scenarios without 
 or.
 1. You can just click the Github Pages link here: 
 
+### Login Portal — Attacker Preview (HTTPS disabled)
+![Sample Image](images/sample.png)
+*Side‑by‑side view of the Simulated victim - POV and the Attacker - Live Preview (attacker sees plaintext and captured credentials).*
+
 ## Safety Notes  
 - The simulator does not access contacts, phone numbers, or messaging APIs.  
 - No logs, credentials, or personal data are stored.  
